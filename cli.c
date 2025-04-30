@@ -52,8 +52,8 @@ int main()
     do
     {
         printf("[CLIENT] ");
-        scanf(" %1023s", buf);
-        buf[svr_buf_len - 1] = '\0';
+        fgets(buf, svr_buf_len, stdin);
+        buf[strcspn(buf, "\n")] = '\0';
         iRet = send(sock, buf, svr_buf_len * sizeof(char), 0);
         if (iRet == SOCKET_ERROR)
         {
