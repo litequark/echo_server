@@ -87,7 +87,6 @@ int main(int argc, char *argv[])
     }
     while (strcmp(buf, "***exit") != 0);
     shutdown(sock, SD_SEND);
-    iRet = 1;
     do
     {
         iRet = recv(sock, buf, svr_buf_len * sizeof(char), 0);
