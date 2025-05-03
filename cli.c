@@ -2,6 +2,7 @@
 // Created by zkm on 2025/4/30.
 //
 
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,7 @@ const int svr_buf_len = 1024;
 
 int main(int argc, char *argv[])
 {
+    setlocale(LC_ALL, "en-US.utf8");
     if (argc != 3)
     {
         fprintf(stderr, "Usage: %s <ip> <port>\n", argv[0]);
