@@ -7,11 +7,20 @@
 #include <string.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <tchar.h>
+#include <strsafe.h>
+#include <process.h>
 #include <windows.h>
+#define MAX_CLIENTS 10
 
 const char* svr_ip = "0.0.0.0";
 int svr_port = 11451;
 const int svr_buf_len = 1024;
+SOCKET cli_socks[MAX_CLIENTS] = {INVALID_SOCKET};
+HANDLE cli_handles[MAX_CLIENTS] = {0};
+unsigned cli_thread_ids[MAX_CLIENTS] = {0};
+
+unsigned __stdcall echo(void *cli);
 
 int main(int argc, char *argv[])
 {
@@ -64,33 +73,69 @@ int main(int argc, char *argv[])
 
     printf("Server listening on port %d\n", svr_port);
 
-    SOCKET cli_sock = accept(sock, NULL, NULL);
-    if (cli_sock == INVALID_SOCKET)
+    int cli_count = 0;
+    while (1)
     {
-        fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
-        closesocket(sock);
-        WSACleanup();
-        exit(EXIT_FAILURE);
+        if (cli_count < MAX_CLIENTS)
+        {
+            cli_socks[cli_count] = accept(sock, NULL, NULL);
+
+            if (cli_socks[cli_count] == INVALID_SOCKET)
+            {
+                fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
+            }
+            else
+            {
+                // cli socket success, pass it to a new thread
+                cli_handles[cli_count] = (HANDLE)_beginthreadex(
+                    NULL,
+                    0,
+                    echo,
+                    (void*)&(cli_socks[cli_count]),
+                    0,
+                    &cli_thread_ids[cli_count]);
+                if (cli_handles[cli_count] == NULL)
+                {
+                    fprintf(stderr, "could not create thread for client\n");
+                }
+                else
+                {
+                    printf("Client connected\n");
+                    cli_count++;
+                }
+            }
+        }
+        else
+        {
+            fprintf(stderr, "Incoming client to accept, but maximum exceeded.\n");
+            continue;
+        }
     }
 
-    printf("Client connected\n");
 
+    closesocket(sock);
+    WSACleanup();
 
+    return 0;
+}
+
+unsigned echo(void* cli)
+{
+    SOCKET* sock = (SOCKET*)cli;
     char* buf = calloc(svr_buf_len, sizeof(char));
+    int iRet = 0;
     do
     {
-        iRet = recv(cli_sock, buf, (svr_buf_len) * sizeof(char), 0);
+        iRet = recv(*sock, buf, (svr_buf_len) * sizeof(char), 0);
         buf[svr_buf_len - 1] = '\0';
         if (iRet == SOCKET_ERROR)
         {
             fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
 
-                closesocket(cli_sock);
-                closesocket(sock);
-                free(buf);
-                WSACleanup();
-                exit(EXIT_FAILURE);
-
+            closesocket(*sock);
+            free(buf);
+            _endthreadex(1);
+            return 1;
         }
         else if (iRet == 0)
         {
@@ -99,29 +144,23 @@ int main(int argc, char *argv[])
         }
 
         printf("[CLIENT] %s\n", buf);
-        iRet = send(cli_sock, buf, (svr_buf_len) * sizeof(char), 0);
+        iRet = send(*sock, buf, (svr_buf_len) * sizeof(char), 0);
         if (iRet == SOCKET_ERROR)
         {
             fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
 
-                closesocket(cli_sock);
-                closesocket(sock);
-                free(buf);
-                WSACleanup();
-                exit(EXIT_FAILURE);
-
+            closesocket(*sock);
+            free(buf);
+            _endthreadex(1);
+            return 1;
         }
         printf("[SERVER] %s\n", buf);
 
         memset(buf, '\0', svr_buf_len * sizeof(char));
     }
     while (iRet > 0);
-
+    closesocket(*sock);
     free(buf);
-
-    closesocket(cli_sock);
-    closesocket(sock);
-    WSACleanup();
-
+    _endthreadex(0);
     return 0;
 }
