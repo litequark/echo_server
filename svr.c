@@ -2,6 +2,7 @@
 // Created by zkm on 2025/4/30.
 //
 
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +23,7 @@ unsigned cli_thread_ids[MAX_CLIENTS] = {0};
 
 unsigned __stdcall echo(void *cli);
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     setlocale(LC_ALL, "zh-CN.gbk");
 
@@ -78,39 +79,31 @@ int main(int argc, char *argv[])
     int cli_count = 0;
     while (1)
     {
-        if (cli_count < MAX_CLIENTS)
-        {
-            cli_socks[cli_count] = accept(sock, NULL, NULL);
+        cli_socks[cli_count] = accept(sock, NULL, NULL);
 
-            if (cli_socks[cli_count] == INVALID_SOCKET)
-            {
-                fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
-            }
-            else
-            {
-                // cli socket success, pass it to a new thread
-                cli_handles[cli_count] = (HANDLE)_beginthreadex(
-                    NULL,
-                    0,
-                    echo,
-                    (void*)&(cli_socks[cli_count]),
-                    0,
-                    &cli_thread_ids[cli_count]);
-                if (cli_handles[cli_count] == NULL)
-                {
-                    fprintf(stderr, "could not create thread for client\n");
-                }
-                else
-                {
-                    printf("Client connected\n");
-                    cli_count++;
-                }
-            }
+        if (cli_socks[cli_count] == INVALID_SOCKET)
+        {
+            fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
         }
         else
         {
-            fprintf(stderr, "Incoming client to accept, but maximum exceeded.\n");
-            continue;
+            // cli socket success, pass it to a new thread
+            cli_handles[cli_count] = (HANDLE)_beginthreadex(
+                NULL,
+                0,
+                echo,
+                (void*)&(cli_socks[cli_count]),
+                0,
+                &cli_thread_ids[cli_count]);
+            if (cli_handles[cli_count] == NULL)
+            {
+                fprintf(stderr, "could not create thread for client\n");
+            }
+            else
+            {
+                printf("Client connected\n");
+                cli_count++;
+            }
         }
     }
 
