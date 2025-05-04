@@ -24,6 +24,8 @@ unsigned __stdcall echo(void *cli);
 
 int main(int argc, char *argv[])
 {
+    setlocale(LC_ALL, "zh-CN.gbk");
+
     if (argc != 3)
     {
         fprintf(stderr, "Usage: %s <ip> <port>\n", argv[0]);
