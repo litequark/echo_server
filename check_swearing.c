@@ -2,18 +2,18 @@
 #include <string.h>
 #define MAXN 1000010
 
-// ¶¨ÒåÔà»°Êı×é
-char swear_words[6][10] = {"Éµ±Æ", "²ÙÄãÂè", "ËûÂèµÄ", "fuck", "shit", "asshole"};
+// å®šä¹‰è„è¯æ•°ç»„
+char swear_words[7][10] = {"è£…é€¼", "æ“ä½ å¦ˆ", "ä»–å¦ˆçš„", "ä½ å¦ˆçš„", "fuck", "shit", "asshole"};
 int kmp[MAXN];
 int j;
 char a[MAXN];
 
-// ¼ì²é×Ö·û´® b ÊÇ·ñÊÇ×Ö·û´® a µÄ×Ó´®
+// æ£€æŸ¥å­—ç¬¦ä¸² b æ˜¯å¦æ˜¯å­—ç¬¦ä¸² a çš„å­ä¸²
 int check_swearing(const char* a, const char* b) {
     int la = strlen(a);
     int lb = strlen(b);
 
-    // ¼ÆËã KMP µÄ next Êı×é
+    // è®¡ç®— KMP çš„ next æ•°ç»„
     j = 0;
     for (int i = 1; i < lb; i++) {
         while (j > 0 && b[i] != b[j]) {
@@ -34,32 +34,36 @@ int check_swearing(const char* a, const char* b) {
             j++;
         }
         if (j == lb) {
-            return 0; // ÕÒµ½Ôà»°£¬·µ»Ø 0
+            return 0; // æ‰¾åˆ°è„è¯ï¼Œè¿”å› 0
         }
     }
-    return 1; // Î´ÕÒµ½Ôà»°£¬·µ»Ø 1
+    return 1; // æœªæ‰¾åˆ°è„è¯ï¼Œè¿”å› 1
 }
-int find_swearing(){
-	int found = 0;
-    for (int i = 0; i < 6; i++) {
+
+// æŸ¥æ‰¾è¾“å…¥å­—ç¬¦ä¸²ä¸­æ˜¯å¦åŒ…å«è„è¯
+int find_swearing() {
+    int found = 0;
+    // ä¿®æ­£å¾ªç¯èŒƒå›´ï¼Œéå†æ‰€æœ‰è„è¯
+    for (int i = 0; i < 7; i++) {
         if (check_swearing(a, swear_words[i]) == 0) {
             found = 1;
             break;
         }
     }
+    // è¿”å›æ£€æµ‹ç»“æœ
     return found;
-} 
-
+}
 
 int main() {
-    // ¶ÁÈ¡×Ö·û´® a
-    printf("ÏûÏ¢£º");
+    // è¯»å–å­—ç¬¦ä¸² a
+    printf("æ¶ˆæ¯: ");
     fgets(a, MAXN, stdin);
-    a[strcspn(a, "\n")] = 0;  // È¥³ı»»ĞĞ·û
+    a[strcspn(a, "\n")] = 0;  // å»é™¤æ¢è¡Œç¬¦
+
     if (find_swearing()) {
-        printf("ÎÊÌâÏûÏ¢£¬²»Óè·¢ËÍ\n");
+        printf("é—®é¢˜æ¶ˆæ¯ï¼Œä¸äºˆå‘é€\n");
     } else {
-        printf("ÏûÏ¢¿É·¢ËÍ\n");
+        printf("æ¶ˆæ¯å¯å‘é€\n");
     }
 
     return 0;
