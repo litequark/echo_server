@@ -126,7 +126,7 @@ unsigned echo(void* cli)
     int iRet = 0;
     do
     {
-        iRet = recv(*sock, buf, (svr_buf_len) * sizeof(char), 0);
+        iRet = recv(*sock, buf, (svr_buf_len) * (int)sizeof(char), 0);
         buf[svr_buf_len - 1] = '\0';
         if (iRet == SOCKET_ERROR)
         {
@@ -144,7 +144,7 @@ unsigned echo(void* cli)
         }
 
         printf("[CLIENT] %s\n", buf);
-        iRet = send(*sock, buf, (svr_buf_len) * sizeof(char), 0);
+        iRet = send(*sock, buf, (svr_buf_len) * (int)sizeof(char), 0);
         if (iRet == SOCKET_ERROR)
         {
             fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
