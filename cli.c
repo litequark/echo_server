@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
         printf("[CLIENT] ");
         fgets(buf, svr_buf_len, stdin);
         buf[strcspn(buf, "\n")] = '\0';
-        iRet = send(sock, buf, svr_buf_len * (int)sizeof(char), 0);
+        iRet = send(sock, buf, (int)strlen(buf) * (int)sizeof(char), 0);
         if (iRet == SOCKET_ERROR)
         {
             fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
