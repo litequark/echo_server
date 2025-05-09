@@ -8,11 +8,14 @@
 #include <string.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <process.h>
 #include <windows.h>
 
 const char* svr_ip = "127.0.0.1";
 int svr_port = 11451;
 const int svr_buf_len = 1024;
+
+unsigned __stdcall receive(const void *svr_sock);
 
 int main(int argc, char *argv[])
 {
@@ -56,13 +59,29 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    HANDLE hThread = CreateThread(
+        NULL,
+        0,
+        receive,
+        (void*)&sock,
+        0,
+        NULL);
+
+    if (hThread == NULL)
+    {
+        fprintf(stderr, "create thread failed with error: %d\n", GetLastError());
+        closesocket(sock);
+        sock = INVALID_SOCKET;
+        WSACleanup();
+        exit(EXIT_FAILURE);
+    }
+
     printf("Connected.\n"
         "Type message and hit RETURN to send, \"***exit\" to disconnect.\n");
 
     char* buf = calloc(svr_buf_len, sizeof(char));
     do
     {
-        printf("[CLIENT] ");
         fgets(buf, svr_buf_len, stdin);
         buf[strcspn(buf, "\n")] = '\0';
         iRet = send(sock, buf, (int)strlen(buf) * (int)sizeof(char), 0);
@@ -70,22 +89,13 @@ int main(int argc, char *argv[])
         {
             fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
             closesocket(sock);
+            sock = INVALID_SOCKET;
             free(buf);
             WSACleanup();
             exit(EXIT_FAILURE);
         }
 
-        iRet = recv(sock, buf, svr_buf_len * (int)sizeof(char), 0);
-        buf[svr_buf_len - 1] = '\0';
-        if (iRet == SOCKET_ERROR)
-        {
-            fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
-            closesocket(sock);
-            free(buf);
-            WSACleanup();
-            exit(EXIT_FAILURE);
-        }
-        printf("[SERVER] %s\n", buf);
+
     }
     while (strcmp(buf, "***exit") != 0);
     shutdown(sock, SD_SEND);
@@ -97,8 +107,34 @@ int main(int argc, char *argv[])
 
     printf("Connection closed gracefully by server.\n");
     closesocket(sock);
+    sock = INVALID_SOCKET;
     WSACleanup();
     free(buf);
 
+    return 0;
+}
+
+unsigned __stdcall receive(const void* svr_sock)
+{
+    SOCKET* sock = (SOCKET*)svr_sock;
+    char *buf = calloc(svr_buf_len, sizeof(char));
+    int iRet = 0;
+    while (1)
+    {
+        iRet = recv(*sock, buf, svr_buf_len * (int)sizeof(char), 0);
+        if (iRet == SOCKET_ERROR)
+        {
+            fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
+            break;
+        }
+        if (iRet == 0)
+        {
+            break;
+        }
+        printf("[SOMEONE] %s\n", buf);
+    }
+
+    free(buf);
+    _endthreadex(0);
     return 0;
 }
