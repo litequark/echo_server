@@ -12,7 +12,7 @@
 #include <strsafe.h>
 #include <process.h>
 #include <windows.h>
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 1000
 
 const char* svr_ip = "0.0.0.0";
 int svr_port = 11451;
