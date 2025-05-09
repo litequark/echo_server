@@ -17,6 +17,7 @@
 const char* svr_ip = "0.0.0.0";
 int svr_port = 11451;
 const int svr_buf_len = 1024;
+int cli_count = 0;
 SOCKET cli_socks[MAX_CLIENTS] = {INVALID_SOCKET};
 HANDLE cli_handles[MAX_CLIENTS] = {0};
 unsigned cli_thread_ids[MAX_CLIENTS] = {0};
