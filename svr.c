@@ -12,46 +12,71 @@
 #include <strsafe.h>
 #include <process.h>
 #include <windows.h>
-#define MAX_CLIENTS 1000
+#define MAX_CLIENTS 3
+
+typedef struct client
+{
+    SOCKET sock;
+    HANDLE thread_handle;
+    unsigned thread_id;
+} CLIENT;
 
 const char* svr_ip = "0.0.0.0";
 int svr_port = 11451;
 const int svr_buf_len = 1024;
-int cli_count = 0;
-SOCKET cli_socks[MAX_CLIENTS] = {INVALID_SOCKET};
-HANDLE cli_handles[MAX_CLIENTS] = {0};
-unsigned cli_thread_ids[MAX_CLIENTS] = {0};
+int next_cli_pos = 0;
+CLIENT* clients = NULL;
 
-unsigned __stdcall echo(void *cli);
+unsigned __stdcall echo(void* cli);
 
 int main(int argc, char* argv[])
 {
-    memset(&cli_socks, INVALID_SOCKET, sizeof(cli_socks));
+    // Set encoding locale (not planned to use UTF-8 now)
     setlocale(LC_ALL, "zh-CN.gbk");
 
+    // Check param count & assign param to vars
     if (argc != 3)
     {
         fprintf(stderr, "Usage: %s <ip> <port>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-
     svr_ip = argv[1];
     svr_port = strtol(argv[2], NULL, 10);
 
+    // Initialize CLIENT array
+    clients = calloc(MAX_CLIENTS, sizeof(CLIENT));
+    if (clients == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for clients\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Invalidate everyone in CLIENT array
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        clients[i].sock = INVALID_SOCKET;
+        clients[i].thread_handle = NULL;
+        clients[i].thread_id = 0;
+    }
+
+    // Network: Initialize WSA
     const WORD wsaVersionRequested = MAKEWORD(2, 2);
     WSADATA wsaData;
     int iRet = WSAStartup(wsaVersionRequested, &wsaData);
     if (iRet != 0)
     {
         fprintf(stderr, "WSAStartup failed with error: %d\n", iRet);
+        free(clients);
         exit(EXIT_FAILURE);
     }
 
+    // Network: Create listening sock
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == INVALID_SOCKET)
     {
         fprintf(stderr, "socket failed with error: %d\n", WSAGetLastError());
         WSACleanup();
+        free(clients);
         exit(EXIT_FAILURE);
     }
     struct sockaddr_in svr_addr;
@@ -59,6 +84,7 @@ int main(int argc, char* argv[])
     svr_addr.sin_port = htons(svr_port);
     svr_addr.sin_addr.s_addr = inet_addr(svr_ip);
 
+    // Network: Bind sock to local addresses
     iRet = bind(sock, (struct sockaddr*)&svr_addr, sizeof(svr_addr));
     if (iRet == SOCKET_ERROR)
     {
@@ -66,8 +92,11 @@ int main(int argc, char* argv[])
         closesocket(sock);
         sock = INVALID_SOCKET;
         WSACleanup();
+        free(clients);
         exit(EXIT_FAILURE);
     }
+
+    // Network: Start listening
     iRet = listen(sock, SOMAXCONN);
     if (iRet == SOCKET_ERROR)
     {
@@ -75,44 +104,78 @@ int main(int argc, char* argv[])
         closesocket(sock);
         sock = INVALID_SOCKET;
         WSACleanup();
+        free(clients);
         exit(EXIT_FAILURE);
     }
-
     printf("Server listening on port %d\n", svr_port);
 
-    cli_count = 0;
     while (1)
     {
-        cli_socks[cli_count] = accept(sock, NULL, NULL);
-
-        if (cli_socks[cli_count] == INVALID_SOCKET)
+        // Accept new client
+        SOCKET tmp = accept(sock, NULL, NULL); // This WAITS for a client to connect
+        if (tmp == INVALID_SOCKET)
         {
             fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
+            continue;
+        }
+
+        /* Find a vacant CLIENT position */
+        // From current pos:
+        int pos = 0;
+        int find_succ = 0;
+        for (pos = next_cli_pos; pos < MAX_CLIENTS; pos++)
+        {
+            if (clients[pos].sock == INVALID_SOCKET)
+            {
+                next_cli_pos = pos;
+                find_succ = 1;
+                break;
+            }
+        }
+        // From beginning (in case that some clients has dropped):
+        if (!find_succ)
+        {
+            for (pos = 0; pos < next_cli_pos; pos++)
+            {
+                if (clients[pos].sock == INVALID_SOCKET)
+                {
+                    next_cli_pos = pos;
+                    find_succ = 1;
+                    break;
+                }
+            }
+        }
+        if (!find_succ)
+        {
+            fprintf(stderr, "Maximum number of clients reached.\n");
+            closesocket(tmp);
+            tmp = INVALID_SOCKET;
+            continue;
+        }
+
+        // Client successfully accepted
+        // Fill in object CLIENT
+        clients[next_cli_pos].sock = tmp;
+        clients[next_cli_pos].thread_handle = (HANDLE)_beginthreadex(
+            NULL,
+            0,
+            echo,
+            (void*)&clients[next_cli_pos],
+            0,
+            &clients[next_cli_pos].thread_id);
+        if (clients[next_cli_pos].thread_handle == NULL)
+        {
+            fprintf(stderr, "could not create thread for client\n");
+            closesocket(clients[next_cli_pos].sock);
+            clients[next_cli_pos].sock = INVALID_SOCKET;
+            clients[next_cli_pos].thread_id = 0;
         }
         else
         {
-            // cli socket success, pass it to a new thread
-            cli_handles[cli_count] = (HANDLE)_beginthreadex(
-                NULL,
-                0,
-                echo,
-                (void*)&(cli_socks[cli_count]),
-                0,
-                &cli_thread_ids[cli_count]);
-            if (cli_handles[cli_count] == NULL)
-            {
-                fprintf(stderr, "could not create thread for client\n");
-                closesocket(cli_socks[cli_count]);
-                cli_socks[cli_count] = INVALID_SOCKET;
-            }
-            else
-            {
-                cli_count++;
-                printf("Client connected\n");
-            }
+            next_cli_pos++;
+            printf("Client connected\n");
         }
     }
-
 
     closesocket(sock);
     sock = INVALID_SOCKET;
@@ -121,21 +184,21 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-unsigned echo(void* cli)
+unsigned __stdcall echo(void* cli)
 {
-    SOCKET* sock = (SOCKET*)cli;
+    CLIENT* client = (CLIENT*)cli;
     char* buf = calloc(svr_buf_len, sizeof(char));
     int iRet = 0;
     do
     {
-        iRet = recv(*sock, buf, (svr_buf_len) * (int)sizeof(char), 0);
+        iRet = recv(client->sock, buf, (svr_buf_len) * (int)sizeof(char), 0);
         buf[svr_buf_len - 1] = '\0';
         if (iRet == SOCKET_ERROR)
         {
             fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
 
-            closesocket(*sock);
-            *sock = INVALID_SOCKET;
+            closesocket(client->sock);
+            client->sock = INVALID_SOCKET;
             free(buf);
             buf = NULL;
             _endthreadex(1);
@@ -144,39 +207,36 @@ unsigned echo(void* cli)
         else if (iRet == 0)
         {
             fprintf(stdout, "Connection closed gracefully.\n");
-            closesocket(*sock);
-            *sock = INVALID_SOCKET;
+            closesocket(client->sock);
+            client->sock = INVALID_SOCKET;
             break;
         }
 
         printf("[CLIENT] %s\n", buf);
 
-        for (int i = 0; i < cli_count; i++)
+        for (int i = 0; i < MAX_CLIENTS; i++)
         {
-            if (cli_socks[i] == *sock || cli_socks[i] == INVALID_SOCKET)
+            if (clients[i].sock == client->sock || clients[i].sock == INVALID_SOCKET)
             {
                 continue;
             }
-            iRet = send(cli_socks[i], buf, (svr_buf_len) * (int)sizeof(char), 0);
-            if (iRet == SOCKET_ERROR)
+            int sendRet = send(clients[i].sock, buf, (svr_buf_len) * (int)sizeof(char), 0);
+            if (sendRet == SOCKET_ERROR)
             {
-                fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
+                fprintf(stderr, "Broadcast to a sock failed with error: %d\n", WSAGetLastError());
 
-                closesocket(*sock);
-                *sock = INVALID_SOCKET;
-                free(buf);
-                buf = NULL;
-                _endthreadex(1);
-                return 1;
+                closesocket(clients[i].sock);
+                clients[i].sock = INVALID_SOCKET;
             }
         }
-        printf("[SOMEONE] %s\n", buf);
+        printf("[BROADCAST] %s\n", buf);
 
         memset(buf, '\0', svr_buf_len * sizeof(char));
     }
     while (iRet > 0);
-    closesocket(*sock);
-    *sock = INVALID_SOCKET;
+
+    closesocket(client->sock);
+    client->sock = INVALID_SOCKET;
     free(buf);
     buf = NULL;
     _endthreadex(0);
