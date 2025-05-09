@@ -26,6 +26,7 @@ unsigned __stdcall echo(void *cli);
 
 int main(int argc, char* argv[])
 {
+    memset(&cli_socks, INVALID_SOCKET, sizeof(cli_socks));
     setlocale(LC_ALL, "zh-CN.gbk");
 
     if (argc != 3)
