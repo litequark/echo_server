@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
     printf("Server listening on port %d\n", svr_port);
 
-    int cli_count = 0;
+    cli_count = 0;
     while (1)
     {
         cli_socks[cli_count] = accept(sock, NULL, NULL);
@@ -107,8 +107,8 @@ int main(int argc, char* argv[])
             }
             else
             {
-                printf("Client connected\n");
                 cli_count++;
+                printf("Client connected\n");
             }
         }
     }
