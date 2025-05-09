@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr, "bind failed with error: %d\n", WSAGetLastError());
         closesocket(sock);
+        sock = INVALID_SOCKET;
         WSACleanup();
         exit(EXIT_FAILURE);
     }
@@ -72,6 +73,7 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr, "listen failed with error: %d\n", WSAGetLastError());
         closesocket(sock);
+        sock = INVALID_SOCKET;
         WSACleanup();
         exit(EXIT_FAILURE);
     }
@@ -100,6 +102,8 @@ int main(int argc, char* argv[])
             if (cli_handles[cli_count] == NULL)
             {
                 fprintf(stderr, "could not create thread for client\n");
+                closesocket(cli_socks[cli_count]);
+                cli_socks[cli_count] = INVALID_SOCKET;
             }
             else
             {
@@ -111,6 +115,7 @@ int main(int argc, char* argv[])
 
 
     closesocket(sock);
+    sock = INVALID_SOCKET;
     WSACleanup();
 
     return 0;
@@ -130,13 +135,17 @@ unsigned echo(void* cli)
             fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
 
             closesocket(*sock);
+            *sock = INVALID_SOCKET;
             free(buf);
+            buf = NULL;
             _endthreadex(1);
             return 1;
         }
         else if (iRet == 0)
         {
             fprintf(stdout, "Connection closed gracefully.\n");
+            closesocket(*sock);
+            *sock = INVALID_SOCKET;
             break;
         }
 
@@ -146,18 +155,23 @@ unsigned echo(void* cli)
         {
             fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
 
-            closesocket(*sock);
-            free(buf);
-            _endthreadex(1);
-            return 1;
+                closesocket(*sock);
+                *sock = INVALID_SOCKET;
+                free(buf);
+                buf = NULL;
+                _endthreadex(1);
+                return 1;
+            }
         }
-        printf("[SERVER] %s\n", buf);
+        printf("[SOMEONE] %s\n", buf);
 
         memset(buf, '\0', svr_buf_len * sizeof(char));
     }
     while (iRet > 0);
     closesocket(*sock);
+    *sock = INVALID_SOCKET;
     free(buf);
+    buf = NULL;
     _endthreadex(0);
     return 0;
 }
