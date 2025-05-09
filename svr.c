@@ -150,10 +150,17 @@ unsigned echo(void* cli)
         }
 
         printf("[CLIENT] %s\n", buf);
-        iRet = send(*sock, buf, (svr_buf_len) * (int)sizeof(char), 0);
-        if (iRet == SOCKET_ERROR)
+
+        for (int i = 0; i < cli_count; i++)
         {
-            fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
+            if (cli_socks[i] == *sock || cli_socks[i] == INVALID_SOCKET)
+            {
+                continue;
+            }
+            iRet = send(cli_socks[i], buf, (svr_buf_len) * (int)sizeof(char), 0);
+            if (iRet == SOCKET_ERROR)
+            {
+                fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
 
                 closesocket(*sock);
                 *sock = INVALID_SOCKET;
