@@ -1,6 +1,8 @@
-# Echo Server
+# About Echo
 
-**Echo Server** is a server application that returns _anything you've sent_ back to the client.
+**Echo** is a simple IM (instant messaging) application using client/server model.
+
+The name **Echo** comes from the prototype of this project, in which the messages sent to the server are simply sent back (*echo*ed).
 
 ## Supported platform
 
@@ -14,6 +16,8 @@ Clone the repository, run CMake in the root dir, and you will get cli.exe and sv
 
 ## Plans & goals
 
-This repo is for learning purposes; advanced features like multi-threading, multi-clients and even GUI would be implemented successively in the near future.
+This repo is for learning purposes.
 
-The final goal is to develop a C/S LAN chat application.
+Codes will be separated into functions of APIs in the near future.
+
+GUI is not planned.
