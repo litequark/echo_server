@@ -8,6 +8,26 @@ The name **Echo** comes from the prototype of this project, in which the message
 
 Support Windows only.
 
+## Usage
+
+### Server
+
+```shell
+\path\to\svr.exe <ip> <port>
+```
+ip: The IPv4 address that the server wants to listen on (or `0.0.0.0` for every local IP).
+
+port: The local port that the server wants to listen on (0-65535).
+
+### Client
+
+```shell
+\path\to\cli.exe <ip> <port>
+```
+ip: The IPv4 address (of a server) that the client wants to connect to.
+
+port: The port of the server (0-65535).
+
 ## How to build from source
 
 This project is based on **CMake**, so it is recommended to build it using **CMake**, with GCC (MSYS2, UCRT64) or MSVC as the compiler.
