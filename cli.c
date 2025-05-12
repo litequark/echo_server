@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
         NULL,
         0,
         receive,
-        (void*)&sock,
+        &sock,
         0,
         NULL);
 
@@ -75,9 +75,6 @@ int main(int argc, char *argv[])
         WSACleanup();
         exit(EXIT_FAILURE);
     }
-
-    printf("Connected.\n"
-        "Type message and hit RETURN to send, \"***exit\" to disconnect.\n");
 
     char* buf = calloc(svr_buf_len, sizeof(char));
     do
