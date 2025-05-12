@@ -148,12 +148,31 @@ int main(int argc, char* argv[])
         if (!find_succ)
         {
             fprintf(stderr, "Maximum number of clients reached.\n");
+            const char max_error[] = {2};
+            iRet = send(tmp, max_error, 1, 0);
+            if (iRet == SOCKET_ERROR)
+            {
+                fprintf(stderr, "Failed to send OK signal, error: %d\n", WSAGetLastError());
+                closesocket(tmp);
+                tmp = INVALID_SOCKET;
+                continue;
+            }
             closesocket(tmp);
             tmp = INVALID_SOCKET;
             continue;
         }
 
-        // Client successfully accepted
+        /* Client successfully accepted */
+        // Send OK message (byte 00000001)
+        const char ok[] = {1};
+        iRet = send(tmp, ok, 1, 0);
+        if (iRet == SOCKET_ERROR)
+        {
+            fprintf(stderr, "Failed to send OK signal, error: %d\n", WSAGetLastError());
+            closesocket(tmp);
+            tmp = INVALID_SOCKET;
+            continue;
+        }
         // Fill in object CLIENT
         clients[next_cli_pos].sock = tmp;
         clients[next_cli_pos].thread_handle = (HANDLE)_beginthreadex(

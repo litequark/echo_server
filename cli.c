@@ -59,6 +59,28 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    printf("Initial connection established, waiting for server's response ...\n");
+
+    char ok_buf[1] = {0};
+    iRet = recv(sock, ok_buf, sizeof(ok_buf), 0);
+    if (iRet == SOCKET_ERROR)
+    {
+        fprintf(stderr, "Failed to receive OK signal, error: %d\n", WSAGetLastError());
+        closesocket(sock);
+        WSACleanup();
+        exit(EXIT_FAILURE);
+    }
+    if (ok_buf[0] != 1)
+    {
+        fprintf(stderr, "Server responded with error signal.\n");
+        closesocket(sock);
+        WSACleanup();
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Connected.\n"
+        "Type message and hit RETURN to send, \"***exit\" to disconnect.\n");
+
     HANDLE hThread = CreateThread(
         NULL,
         0,
