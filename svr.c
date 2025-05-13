@@ -122,30 +122,30 @@ int main(int argc, char* argv[])
         /* Find a vacant CLIENT position */
         // From current pos:
         int pos = 0;
-        int find_succ = 0;
+        int found = 0;
         for (pos = next_cli_pos; pos < MAX_CLIENTS; pos++)
         {
             if (clients[pos].sock == INVALID_SOCKET)
             {
                 next_cli_pos = pos;
-                find_succ = 1;
+                found = 1;
                 break;
             }
         }
         // From beginning (in case that some clients has dropped):
-        if (!find_succ)
+        if (!found)
         {
             for (pos = 0; pos < next_cli_pos; pos++)
             {
                 if (clients[pos].sock == INVALID_SOCKET)
                 {
                     next_cli_pos = pos;
-                    find_succ = 1;
+                    found = 1;
                     break;
                 }
             }
         }
-        if (!find_succ)
+        if (!found)
         {
             fprintf(stderr, "Maximum number of clients reached.\n");
             const char max_error[] = {2};
