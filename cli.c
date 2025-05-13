@@ -15,7 +15,7 @@ const char* svr_ip = "127.0.0.1";
 int svr_port = 11451;
 const int svr_buf_len = 1024;
 
-unsigned __stdcall receive(const void *svr_sock);
+unsigned __stdcall receive(void *svr_sock);
 
 int main(int argc, char *argv[])
 {
