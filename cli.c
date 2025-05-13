@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in svr_addr;
     svr_addr.sin_family = AF_INET; // Internet IPv4
     svr_addr.sin_port = htons(svr_port);
-    svr_addr.sin_addr.s_addr = inet_addr(svr_ip);
+    inet_pton(AF_INET, svr_ip, &svr_addr.sin_addr.s_addr);
 
     iRet = connect(sock, (struct sockaddr*)&svr_addr, sizeof(svr_addr));
     if (iRet == SOCKET_ERROR)
