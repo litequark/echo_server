@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
         NULL,
         0,
         receive,
-        &sock,
+        (void*)&sock,
         0,
         NULL);
 

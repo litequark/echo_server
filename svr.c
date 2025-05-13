@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
             NULL,
             0,
             echo,
-            &clients[next_cli_pos],
+            (void*)&clients[next_cli_pos],
             0,
             &clients[next_cli_pos].thread_id);
         if (clients[next_cli_pos].thread_handle == NULL)
