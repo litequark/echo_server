@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-unsigned __stdcall receive(const void* svr_sock)
+unsigned __stdcall receive(void* svr_sock)
 {
     SOCKET* sock = (SOCKET*)svr_sock;
     char *buf = calloc(svr_buf_len, sizeof(char));
