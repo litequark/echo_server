@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
     printf("Connected.\n"
         "Type message and hit RETURN to send, \"***exit\" to disconnect.\n");
 
-    HANDLE hThread = CreateThread(
+    HANDLE hThread = (HANDLE)_beginthreadex(
         NULL,
         0,
         receive,
