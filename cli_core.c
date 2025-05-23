@@ -52,7 +52,6 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
     if (sock == INVALID_SOCKET)
     {
         *wsa_error = WSAGetLastError();
-        cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
         svr = NULL;
@@ -68,7 +67,6 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
     if (i_ret == SOCKET_ERROR)
     {
         *wsa_error = WSAGetLastError();
-        cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
         svr = NULL;
@@ -84,7 +82,6 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
         closesocket(sock);
         sock = INVALID_SOCKET;
         *wsa_error = WSAGetLastError();
-        cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
         svr = NULL;
@@ -96,7 +93,6 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
         closesocket(sock);
         sock = INVALID_SOCKET;
         *wsa_error = 0;
-        cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
         svr = NULL;
@@ -120,7 +116,6 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
         closesocket(sock);
         sock = INVALID_SOCKET;
         svr->sock = INVALID_SOCKET;
-        cli_core_cleanup();
         free(svr);
         svr = NULL;
         free(p_args);
@@ -140,7 +135,6 @@ int cli_core_send(SERVER* server, const char* msg, int len)
         int err = WSAGetLastError();
         closesocket(server->sock);
         server->sock = INVALID_SOCKET;
-        cli_core_cleanup();
         return err;
     }
     else
