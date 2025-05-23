@@ -19,7 +19,7 @@ typedef struct Server
 
 typedef struct CallbackFn_Params
 {
-    SOCKET *sock;
+    SOCKET sock;
     int (*callback)(const char*, int len);
 } CALLBACK_FN_PARAMS;
 
@@ -45,11 +45,10 @@ int cli_core_cleanup();
  * Initialize a SERVER instance.
  * @param ip IPv4 address string to the server.
  * @param port Port of the server.
- * @param svr Pointer to a buffer that can contain a SERVER instance.
  * @param callback Function to be called when new msg arrives.
  * @return 0: success; WSA error code: WSA failure; -1: internal error.
  */
-int cli_core_login(const char *ip, int port, SERVER* svr, int (*callback)(const char*, int len));
+SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, int len));
 
 /**
  * Sends a message to the LAN.

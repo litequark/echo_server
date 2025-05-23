@@ -6,7 +6,7 @@
 
 #include <assert.h>
 
-const int svr_buf_len = 1024;
+static const int svr_buf_len = 1024;
 
 
 static int receive(void* args);
@@ -35,16 +35,23 @@ int cli_core_cleanup()
     return 0;
 }
 
-int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const char*, int len))
+SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, int len))
 {
-    svr = calloc(1, sizeof(SERVER));
+    SERVER* svr = calloc(1, sizeof(SERVER));
+    if (svr == NULL)
+    {
+        return NULL;
+    }
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == INVALID_SOCKET)
     {
         int err = WSAGetLastError();
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
-        return err;
+        free(svr);
+        svr = NULL;
+
+        return NULL;
     }
     struct sockaddr_in svr_addr;
     svr_addr.sin_family = AF_INET; // Internet IPv4
@@ -57,7 +64,9 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
         int err = WSAGetLastError();
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
-        return err;
+        free(svr);
+        svr = NULL;
+        return NULL;
     }
 
     // Initial connection established, waiting for server's response
@@ -71,7 +80,9 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
         int err = WSAGetLastError();
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
-        return err;
+        free(svr);
+        svr = NULL;
+        return NULL;
     }
     if (ok_buf[0] != 1)
     {
@@ -81,25 +92,33 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
         int err = -1;
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
-        return err;
+        free(svr);
+        svr = NULL;
+        return NULL;
     }
     // success, write to SERVER*
     svr->sock = sock;
 
     // register callback function
-    CALLBACK_FN_PARAMS args = {&svr->sock, receive};
+    // 线程回调函数的参数不要传局部变量的指针，否则局部变量自动析构后指针就无效了，而此时线程仍在运行，会造成access violation。
+    CALLBACK_FN_PARAMS* p_args = calloc(1, sizeof(CALLBACK_FN_PARAMS));
+    CALLBACK_FN_PARAMS args = {svr->sock, callback};
+    *p_args = args;
     thrd_t receive_thread;
-    iRet = thrd_create(&receive_thread, receive, (void *)&args);
+    iRet = thrd_create(&receive_thread, receive, (void *)p_args);
     if (iRet != thrd_success)
     {
         // fprintf(stderr, "Failed to create receive thread.\n");
         closesocket(sock);
         sock = INVALID_SOCKET;
+        svr->sock = INVALID_SOCKET;
         cli_core_cleanup();
-        return -1;
+        free(svr);
+        svr = NULL;
+        return NULL;
     }
 
-    return 0;
+    return svr;
 }
 
 int cli_core_send(SERVER* server, const char* msg, int len)
@@ -122,7 +141,16 @@ int cli_core_send(SERVER* server, const char* msg, int len)
 
 int cli_core_logout(SERVER* server)
 {
+    char buf[1024] = {0};
+    int i_ret = 0;
+    // Shutdown sending side
     shutdown(server->sock, SD_SEND);
+    // Complete remaining receiving task
+    do
+    {
+        i_ret = recv(server->sock, buf, svr_buf_len * (int)sizeof(char), 0);
+    }
+    while (i_ret != 0);
     closesocket(server->sock);
     server->sock = INVALID_SOCKET;
     free(server);
@@ -133,14 +161,18 @@ static int receive(void* args)
 {
     assert(args != NULL);
     CALLBACK_FN_PARAMS* params = (CALLBACK_FN_PARAMS*)args;
-    SOCKET* sock = (SOCKET*)(params->sock);
+    if (params == NULL || params->sock == INVALID_SOCKET || params->callback == NULL)
+    {
+        return -1;
+    }
+    SOCKET sock = (SOCKET)(params->sock);
     int (*callback)(const char*, int) = params->callback;
 
     char *buf = calloc(svr_buf_len, sizeof(char));
     int iRet = 0;
     while (1)
     {
-        iRet = recv(*sock, buf, svr_buf_len * (int)sizeof(char), 0);
+        iRet = recv(sock, buf, svr_buf_len * (int)sizeof(char), 0);
         if (iRet == SOCKET_ERROR)
         {
             fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
@@ -154,7 +186,7 @@ static int receive(void* args)
         printf("[SOMEONE] %s\n", buf);
     }
 
-    *sock = INVALID_SOCKET;
+    sock = INVALID_SOCKET;
     free(buf);
     return 0;
 }
