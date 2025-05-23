@@ -43,6 +43,7 @@ int cli_core_cleanup();
 
 /**
  * Initialize a SERVER instance.
+ * The returned SERVER instance must be freed by cli_core_logout.
  * @param ip IPv4 address string to the server.
  * @param port Port of the server.
  * @param callback Function to be called when new msg arrives.
@@ -62,7 +63,8 @@ int cli_core_send(SERVER *server, const char *msg, int len);
 
 /**
  * Disconnect client from server.
- * @param server Pointer to an initialized SERVER instance.
+ * The SERVER instance will be freed and set to NULL.
+ * @param server Pointer to a SERVER instance that has been initialized by cli_core_login.
  * @return 0: success, -1: internal error.
  */
 int cli_core_logout(SERVER *server);
