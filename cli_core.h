@@ -17,6 +17,12 @@ typedef struct Server
     SOCKET sock;
 } SERVER;
 
+typedef struct CallbackFn_Params
+{
+    SOCKET *sock;
+    int (*callback)(const char*, int len);
+} CALLBACK_FN_PARAMS;
+
 /**
  * Initializes locale and Windows socket.
  * MUST be called first.

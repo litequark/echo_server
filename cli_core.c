@@ -9,7 +9,7 @@
 const int svr_buf_len = 1024;
 
 
-static int receive(void* svr_sock, int (*callback)(const char*, int len));
+static int receive(void* args);
 
 
 int cli_core_init()
@@ -43,7 +43,7 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
     {
         int err = WSAGetLastError();
         cli_core_cleanup();
-        *svr = {INVALID_SOCKET};
+        svr->sock = INVALID_SOCKET;
         return err;
     }
     struct sockaddr_in svr_addr;
@@ -56,7 +56,7 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
     {
         int err = WSAGetLastError();
         cli_core_cleanup();
-        *svr = {INVALID_SOCKET};
+        svr->sock = INVALID_SOCKET;
         return err;
     }
 
@@ -70,7 +70,7 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
         sock = INVALID_SOCKET;
         int err = WSAGetLastError();
         cli_core_cleanup();
-        *svr = {INVALID_SOCKET};
+        svr->sock = INVALID_SOCKET;
         return err;
     }
     if (ok_buf[0] != 1)
@@ -80,15 +80,16 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
         sock = INVALID_SOCKET;
         int err = WSAGetLastError();
         cli_core_cleanup();
-        *svr = {INVALID_SOCKET};
+        svr->sock = INVALID_SOCKET;
         return err;
     }
     // success, write to SERVER*
     svr->sock = sock;
 
     // register callback function
+    CALLBACK_FN_PARAMS args = {&svr->sock, receive};
     thrd_t receive_thread;
-    iRet = thrd_create(&receive_thread, receive, (void *)&sock);
+    iRet = thrd_create(&receive_thread, receive, (void *)&args);
     if (iRet != thrd_success)
     {
         // fprintf(stderr, "Failed to create receive thread.\n");
@@ -128,10 +129,13 @@ int cli_core_logout(SERVER* server)
     return 0;
 }
 
-static int receive(void* svr_sock, int (*callback)(const char*, int len))
+static int receive(void* args)
 {
-    assert(callback != NULL);
-    SOCKET* sock = (SOCKET*)svr_sock;
+    assert(args != NULL);
+    CALLBACK_FN_PARAMS* params = (CALLBACK_FN_PARAMS*)args;
+    SOCKET* sock = (SOCKET*)(params->sock);
+    int (*callback)(const char*, int) = params->callback;
+
     char *buf = calloc(svr_buf_len, sizeof(char));
     int iRet = 0;
     while (1)
