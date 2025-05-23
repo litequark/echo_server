@@ -6,19 +6,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <tchar.h>
 #include <strsafe.h>
-#include <process.h>
-#include <windows.h>
 #define MAX_CLIENTS 3
 
 typedef struct client
 {
     SOCKET sock;
-    HANDLE thread_handle;
-    unsigned thread_id;
+    thrd_t thread;
 } CLIENT;
 
 const char* svr_ip = "0.0.0.0";
@@ -27,7 +24,7 @@ const int svr_buf_len = 1024;
 int next_cli_pos = 0;
 CLIENT* clients = NULL;
 
-unsigned __stdcall echo(void* cli);
+int broadcast(void* cli);
 
 int main(int argc, char* argv[])
 {
@@ -55,8 +52,6 @@ int main(int argc, char* argv[])
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         clients[i].sock = INVALID_SOCKET;
-        clients[i].thread_handle = NULL;
-        clients[i].thread_id = 0;
     }
 
     // Network: Initialize WSA
@@ -67,6 +62,7 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr, "WSAStartup failed with error: %d\n", iRet);
         free(clients);
+        clients = NULL;
         exit(EXIT_FAILURE);
     }
 
@@ -77,6 +73,7 @@ int main(int argc, char* argv[])
         fprintf(stderr, "socket failed with error: %d\n", WSAGetLastError());
         WSACleanup();
         free(clients);
+        clients = NULL;
         exit(EXIT_FAILURE);
     }
     struct sockaddr_in svr_addr;
@@ -93,6 +90,7 @@ int main(int argc, char* argv[])
         sock = INVALID_SOCKET;
         WSACleanup();
         free(clients);
+        clients = NULL;
         exit(EXIT_FAILURE);
     }
 
@@ -105,6 +103,7 @@ int main(int argc, char* argv[])
         sock = INVALID_SOCKET;
         WSACleanup();
         free(clients);
+        clients = NULL;
         exit(EXIT_FAILURE);
     }
     printf("Server listening on port %d\n", svr_port);
@@ -175,19 +174,12 @@ int main(int argc, char* argv[])
         }
         // Fill in object CLIENT
         clients[next_cli_pos].sock = tmp;
-        clients[next_cli_pos].thread_handle = (HANDLE)_beginthreadex(
-            NULL,
-            0,
-            echo,
-            (void*)&clients[next_cli_pos],
-            0,
-            &clients[next_cli_pos].thread_id);
-        if (clients[next_cli_pos].thread_handle == NULL)
+        iRet = thrd_create(&clients[next_cli_pos].thread, broadcast, (void*)&clients[next_cli_pos]);
+        if (iRet != thrd_success)
         {
             fprintf(stderr, "could not create thread for client\n");
             closesocket(clients[next_cli_pos].sock);
             clients[next_cli_pos].sock = INVALID_SOCKET;
-            clients[next_cli_pos].thread_id = 0;
         }
         else
         {
@@ -203,7 +195,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-unsigned __stdcall echo(void* cli)
+int broadcast(void* cli)
 {
     CLIENT* client = (CLIENT*)cli;
     char* buf = calloc(svr_buf_len, sizeof(char));
@@ -220,7 +212,6 @@ unsigned __stdcall echo(void* cli)
             client->sock = INVALID_SOCKET;
             free(buf);
             buf = NULL;
-            _endthreadex(1);
             return 1;
         }
         else if (iRet == 0)
@@ -258,6 +249,5 @@ unsigned __stdcall echo(void* cli)
     client->sock = INVALID_SOCKET;
     free(buf);
     buf = NULL;
-    _endthreadex(0);
     return 0;
 }
