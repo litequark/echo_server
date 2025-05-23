@@ -10,7 +10,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <strsafe.h>
-#define MAX_CLIENTS 3
+#define MAX_CLIENTS 1024
 
 typedef struct client
 {
