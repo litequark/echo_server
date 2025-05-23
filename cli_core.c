@@ -36,11 +36,16 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
 {
     if (ip == NULL || callback == NULL || wsa_error == NULL)
     {
+        if (wsa_error != NULL)
+        {
+            *wsa_error = 0;
+        }
         return NULL;
     }
     SERVER* svr = calloc(1, sizeof(SERVER));
     if (svr == NULL)
     {
+        *wsa_error = 0;
         return NULL;
     }
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -90,7 +95,7 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
         // Server responded with error signal
         closesocket(sock);
         sock = INVALID_SOCKET;
-        int err = -1;
+        *wsa_error = 0;
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
@@ -110,6 +115,8 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
     if (i_ret != thrd_success)
     {
         // fprintf(stderr, "Failed to create receive thread.\n");
+        *wsa_error = 0;
+
         closesocket(sock);
         sock = INVALID_SOCKET;
         svr->sock = INVALID_SOCKET;
