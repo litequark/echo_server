@@ -122,7 +122,7 @@ int cli_core_send(SERVER* server, const char* msg, int len)
 
 int cli_core_logout(SERVER* server)
 {
-    shutdown(server->sock, SD_BOTH);
+    shutdown(server->sock, SD_SEND);
     closesocket(server->sock);
     server->sock = INVALID_SOCKET;
     free(server);
