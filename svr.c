@@ -18,8 +18,6 @@ typedef struct client
     thrd_t thread;
 } CLIENT;
 
-const char* svr_ip = "0.0.0.0";
-int svr_port = 11451;
 const int svr_buf_len = 1024;
 int next_cli_pos = 0;
 CLIENT* clients = NULL;
@@ -37,8 +35,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Usage: %s <ip> <port>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    svr_ip = argv[1];
-    svr_port = strtol(argv[2], NULL, 10);
+    const char *svr_ip = argv[1];
+    const int svr_port = (int)strtol(argv[2], NULL, 10);
 
     // Initialize CLIENT array
     clients = calloc(MAX_CLIENTS, sizeof(CLIENT));
