@@ -3,7 +3,6 @@
 //
 
 #include "cli_core.h"
-
 #include <assert.h>
 
 static const int svr_buf_len = 1024;
@@ -60,8 +59,8 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
     svr_addr.sin_port = htons(port);
     inet_pton(AF_INET, ip, &svr_addr.sin_addr.s_addr);
 
-    int iRet = connect(sock, (struct sockaddr*)&svr_addr, sizeof(svr_addr));
-    if (iRet == SOCKET_ERROR)
+    int i_ret = connect(sock, (struct sockaddr*)&svr_addr, sizeof(svr_addr));
+    if (i_ret == SOCKET_ERROR)
     {
         *wsa_error = WSAGetLastError();
         cli_core_cleanup();
@@ -73,8 +72,8 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
 
     // Initial connection established, waiting for server's response
     char ok_buf[1] = {0};
-    iRet = recv(sock, ok_buf, sizeof(ok_buf), 0);
-    if (iRet == SOCKET_ERROR)
+    i_ret = recv(sock, ok_buf, sizeof(ok_buf), 0);
+    if (i_ret == SOCKET_ERROR)
     {
         // Failed to receive OK signal
         closesocket(sock);
@@ -107,8 +106,8 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
     CALLBACK_FN_PARAMS args = {svr->sock, callback};
     *p_args = args;
     thrd_t receive_thread;
-    iRet = thrd_create(&receive_thread, receive, (void *)p_args);
-    if (iRet != thrd_success)
+    i_ret = thrd_create(&receive_thread, receive, (void *)p_args);
+    if (i_ret != thrd_success)
     {
         // fprintf(stderr, "Failed to create receive thread.\n");
         closesocket(sock);
@@ -155,9 +154,12 @@ int cli_core_logout(SERVER* server)
         i_ret = recv(server->sock, buf, svr_buf_len * (int)sizeof(char), 0);
     }
     while (i_ret != 0);
+
+
     closesocket(server->sock);
     server->sock = INVALID_SOCKET;
     free(server);
+    server = NULL;
     return 0;
 }
 
@@ -173,16 +175,16 @@ static int receive(void* args)
     int (*callback)(const char*, int) = params->callback;
 
     char *buf = calloc(svr_buf_len, sizeof(char));
-    int iRet = 0;
+    int i_ret = 0;
     while (1)
     {
-        iRet = recv(sock, buf, svr_buf_len * (int)sizeof(char), 0);
-        if (iRet == SOCKET_ERROR)
+        i_ret = recv(sock, buf, svr_buf_len * (int)sizeof(char), 0);
+        if (i_ret == SOCKET_ERROR)
         {
             fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
             break;
         }
-        if (iRet == 0)
+        if (i_ret == 0)
         {
             break;
         }
