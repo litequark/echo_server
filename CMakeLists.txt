@@ -12,3 +12,6 @@ target_link_libraries(svr ws2_32)
 
 add_executable(cli cli.c)
 target_link_libraries(cli ws2_32)
+
+add_library(cli_core cli_core.c cli_core.h)
+target_link_libraries(cli_core ws2_32)
