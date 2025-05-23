@@ -46,7 +46,7 @@ int cli_core_cleanup();
  * @param ip IPv4 address string to the server.
  * @param port Port of the server.
  * @param callback Function to be called when new msg arrives.
- * @param wsa_error
+ * @param wsa_error Pointer to an integer, to store WSA error code, or 0 if there are no WSA errors.
  * @return Pointer to a SERVER instance: success; NULL: failure.
  */
 SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, int len), int* wsa_error);
