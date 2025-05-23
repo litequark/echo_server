@@ -78,7 +78,7 @@ int cli_core_login(const char* ip, int port, SERVER* svr, int (*callback)(const 
         // Server responded with error signal
         closesocket(sock);
         sock = INVALID_SOCKET;
-        int err = WSAGetLastError();
+        int err = -1;
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         return err;
