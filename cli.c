@@ -10,11 +10,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
-
 #include "cli_core.h"
 
-const char* svr_ip = "127.0.0.1";
-int svr_port = 11451;
 static const int svr_buf_len = 1024;
 
 int print_msg(const char* msg, int len);
@@ -23,19 +20,28 @@ int receive(void *svr_sock);
 
 int main(int argc, char *argv[])
 {
+    // Parse cmd args
     if (argc != 3)
     {
         fprintf(stderr, "Usage: %s <ip> <port>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+    const char* svr_ip = argv[1];
+    const int svr_port = strtol(argv[2], NULL, 10);
 
-    svr_ip = argv[1];
-    svr_port = strtol(argv[2], NULL, 10);
-
-    cli_core_init();
 
     int i_ret = 0;
-    SERVER* svr = cli_core_login(svr_ip, svr_port, print_msg);
+
+    // Initialize WSA
+    i_ret = cli_core_init();
+    if(i_ret != 0)
+    {
+        fprintf(stderr, "WSA initialization failed (%d)\n", i_ret);
+        exit(EXIT_FAILURE);
+    }
+
+    // Connect to server
+    SERVER* svr = cli_core_login(svr_ip, svr_port, print_msg,NULL);
     if (svr == NULL)
     {
         fprintf(stderr, "Failed to connect to server.\n");

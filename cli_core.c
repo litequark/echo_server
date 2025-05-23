@@ -8,9 +8,7 @@
 
 static const int svr_buf_len = 1024;
 
-
 static int receive(void* args);
-
 
 int cli_core_init()
 {
@@ -35,8 +33,12 @@ int cli_core_cleanup()
     return 0;
 }
 
-SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, int len))
+SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, int len), int* wsa_error)
 {
+    if (ip == NULL || callback == NULL || wsa_error == NULL)
+    {
+        return NULL;
+    }
     SERVER* svr = calloc(1, sizeof(SERVER));
     if (svr == NULL)
     {
@@ -45,7 +47,7 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == INVALID_SOCKET)
     {
-        int err = WSAGetLastError();
+        *wsa_error = WSAGetLastError();
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
@@ -61,7 +63,7 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
     int iRet = connect(sock, (struct sockaddr*)&svr_addr, sizeof(svr_addr));
     if (iRet == SOCKET_ERROR)
     {
-        int err = WSAGetLastError();
+        *wsa_error = WSAGetLastError();
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
@@ -77,7 +79,7 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
         // Failed to receive OK signal
         closesocket(sock);
         sock = INVALID_SOCKET;
-        int err = WSAGetLastError();
+        *wsa_error = WSAGetLastError();
         cli_core_cleanup();
         svr->sock = INVALID_SOCKET;
         free(svr);
@@ -115,6 +117,8 @@ SERVER* cli_core_login(const char* ip, int port, int (*callback)(const char*, in
         cli_core_cleanup();
         free(svr);
         svr = NULL;
+        free(p_args);
+        p_args = NULL;
         return NULL;
     }
 
@@ -188,5 +192,7 @@ static int receive(void* args)
 
     sock = INVALID_SOCKET;
     free(buf);
+    free(args);
+    args = NULL;
     return 0;
 }
