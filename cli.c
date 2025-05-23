@@ -41,10 +41,11 @@ int main(int argc, char *argv[])
     }
 
     // Connect to server
-    SERVER* svr = cli_core_login(svr_ip, svr_port, print_msg,NULL);
+    int wsa_error = 0;
+    SERVER* svr = cli_core_login(svr_ip, svr_port, print_msg, &wsa_error);
     if (svr == NULL)
     {
-        fprintf(stderr, "Failed to connect to server.\n");
+        fprintf(stderr, "Failed to connect to server (WSA error %d).\n", wsa_error);
         cli_core_cleanup();
         exit(EXIT_FAILURE);
     }
