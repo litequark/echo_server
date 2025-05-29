@@ -190,7 +190,6 @@ static int receive(void* args)
             break;
         }
         callback(buf, (int)strlen(buf));
-        printf("[SOMEONE] %s\n", buf);
     }
 
     sock = INVALID_SOCKET;
